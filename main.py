@@ -24,8 +24,8 @@ class AnimatedDesktop(QWidget):
         self.setWindowTitle("Animated Desktop")
 
         self.setWindowFlags(
-            Qt.FramelessWindowHint         
-            )
+            Qt.FramelessWindowHint
+        )
 
         self.setMinimumSize(200, 120)
 
