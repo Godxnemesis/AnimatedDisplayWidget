@@ -1,11 +1,16 @@
 import sys
 import os
 
-from PySide6.QtCore import Qt, QUrl, QPoint
+from PySide6.QtCore import Qt, QUrl, QPoint, QSettings
 from PySide6.QtWidgets import (
     QApplication,
     QWidget,
-    QMenu
+    QMenu,
+    QDialog,
+    QSlider,
+    QLabel,
+    QVBoxLayout,
+    QPushButton
 )
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 from PySide6.QtMultimediaWidgets import QVideoWidget
@@ -36,6 +41,29 @@ class AnimatedDesktop(QWidget):
         # =================================
 
         self.locked = False
+
+        # =================================
+        # SAVED LAYOUT
+        # =================================
+
+        self.settings = QSettings(
+            "Godxnemesis",
+            "AnimatedDesktop"
+        )
+
+        self.opacity_value = int(
+            self.settings.value("opacity", 100)
+        )
+
+        self.opacity_value = max(20, min(100, self.opacity_value))
+
+        saved_geometry = self.settings.value("geometry")
+        if saved_geometry:
+            self.restoreGeometry(saved_geometry)
+
+        self.setWindowOpacity(
+            self.opacity_value / 100
+        )
 
         # =================================
         # VIDEO
@@ -243,14 +271,16 @@ class AnimatedDesktop(QWidget):
 
         opacity_action = menu.addAction("Opacity")
         opacity_action.setEnabled(not self.locked)
+        opacity_action.triggered.connect(self.show_opacity_dialog)
 
         save_action = menu.addAction("Save Layout")
+        save_action.triggered.connect(
+            self.save_layout
+        )
 
         # These are not implemented yet.
         resize_action.setEnabled(False)
         recrop_action.setEnabled(False)
-        opacity_action.setEnabled(False)
-        save_action.setEnabled(False)
 
         # -----------------------------
         # Close
@@ -268,6 +298,66 @@ class AnimatedDesktop(QWidget):
         menu.exec(
             self.video.mapToGlobal(position)
         )
+
+    # =====================================
+    # SAVE LAYOUT
+    # =====================================
+
+    def save_layout(self):
+
+        self.settings.setValue(
+            "geometry",
+            self.saveGeometry()
+        )
+
+        self.settings.setValue(
+            "opacity",
+            self.opacity_value
+        )
+
+        self.settings.sync()
+
+        print("Layout saved")
+
+    # =====================================
+    # OPACITY
+    # =====================================
+
+    def show_opacity_dialog(self):
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Opacity")
+        dialog.setFixedWidth(300)
+
+        layout = QVBoxLayout(dialog)
+
+        value_label = QLabel(
+            f"Opacity: {self.opacity_value}%"
+        )
+        layout.addWidget(value_label)
+
+        slider = QSlider(Qt.Orientation.Horizontal)
+        slider.setRange(20, 100)
+        slider.setValue(self.opacity_value)
+        slider.setSingleStep(5)
+        slider.setPageStep(10)
+
+        def update_opacity(value):
+            self.opacity_value = value
+            self.setWindowOpacity(value / 100)
+            value_label.setText(
+                f"Opacity: {value}%"
+            )
+
+        slider.valueChanged.connect(update_opacity)
+        layout.addWidget(slider)
+
+        close_button = QPushButton("Done")
+        close_button.clicked.connect(dialog.accept)
+        layout.addWidget(close_button)
+
+        dialog.exec()
+
 
     # =====================================
     # LOCK / UNLOCK
