@@ -1,6 +1,9 @@
 import sys
 import os
 
+if sys.platform == "win32":
+    import winreg
+
 from PySide6.QtCore import Qt, QUrl, QPoint, QSettings
 from PySide6.QtWidgets import (
     QApplication,
@@ -278,6 +281,19 @@ class AnimatedDesktop(QWidget):
             self.save_layout
         )
 
+        # -----------------------------
+        # Start with Windows
+        # -----------------------------
+
+        autostart_action = menu.addAction("Start with Windows")
+        autostart_action.setCheckable(True)
+        autostart_action.setChecked(
+            self.is_autostart_enabled()
+        )
+        autostart_action.triggered.connect(
+            self.toggle_autostart
+        )
+
         # These are not implemented yet.
         resize_action.setEnabled(False)
         recrop_action.setEnabled(False)
@@ -358,6 +374,88 @@ class AnimatedDesktop(QWidget):
 
         dialog.exec()
 
+
+    # =====================================
+    # START WITH WINDOWS
+    # =====================================
+
+    def is_autostart_enabled(self):
+
+        if sys.platform != "win32":
+            return False
+
+        try:
+            key = winreg.OpenKey(
+                winreg.HKEY_CURRENT_USER,
+                r"Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+                0,
+                winreg.KEY_READ
+            )
+
+            try:
+                winreg.QueryValueEx(
+                    key,
+                    "AnimatedDesktop"
+                )
+                return True
+
+            except FileNotFoundError:
+                return False
+
+            finally:
+                winreg.CloseKey(key)
+
+        except OSError:
+            return False
+
+    def toggle_autostart(self, checked):
+
+        if sys.platform != "win32":
+            print("Start with Windows is only available on Windows")
+            return
+
+        try:
+            key = winreg.OpenKey(
+                winreg.HKEY_CURRENT_USER,
+                r"Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+                0,
+                winreg.KEY_SET_VALUE
+            )
+
+            if checked:
+
+                if getattr(sys, "frozen", False):
+                    command = f'"{sys.executable}"'
+                else:
+                    script_path = os.path.abspath(__file__)
+                    command = f'"{sys.executable}" "{script_path}"'
+
+                winreg.SetValueEx(
+                    key,
+                    "AnimatedDesktop",
+                    0,
+                    winreg.REG_SZ,
+                    command
+                )
+
+                print("Start with Windows enabled")
+
+            else:
+
+                try:
+                    winreg.DeleteValue(
+                        key,
+                        "AnimatedDesktop"
+                    )
+                except FileNotFoundError:
+                    pass
+
+                print("Start with Windows disabled")
+
+            winreg.CloseKey(key)
+
+        except OSError as error:
+            print("Could not change Start with Windows:", error)
 
     # =====================================
     # LOCK / UNLOCK
