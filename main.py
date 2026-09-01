@@ -24,9 +24,8 @@ class AnimatedDesktop(QWidget):
         self.setWindowTitle("Animated Desktop")
 
         self.setWindowFlags(
-            Qt.FramelessWindowHint |
-            Qt.WindowStaysOnTopHint
-        )
+            Qt.FramelessWindowHint         
+            )
 
         self.setMinimumSize(200, 120)
 
@@ -54,6 +53,11 @@ class AnimatedDesktop(QWidget):
         self.player.setAudioOutput(self.audio)
 
         self.player.setVideoOutput(self.video)
+        
+        #-----------------------------
+        # Loops
+        #-----------------------------
+        self.player.setLoops(QMediaPlayer.Loops.Infinite)
 
         # -----------------------------
         # Find video
@@ -106,11 +110,6 @@ class AnimatedDesktop(QWidget):
     def media_status_changed(self, status):
 
         if status == QMediaPlayer.MediaStatus.LoadedMedia:
-            self.player.play()
-            
-        elif status == QMediaPlayer.MediaStatus.EndOfMedia:
-
-            self.player.setPosition(0)
             self.player.play()
 
     # =================================
